@@ -1,8 +1,8 @@
-# peek-matcher
+# PeakMatcher
 A tool for matching peaks across genome assemblies using read alignments.
 
 ## Dependencies
-PeekMatcher is developed with Python 3.
+PeakMatcher is developed with Python 3.
 
 ## Installation
 
@@ -12,7 +12,7 @@ $ pip install -m .
 
 ## Development
 
-It is easiest to use PeekMatcher in a Python [virtual environment](https://docs.python.org/3/library/venv.html).  You can create a virtual environment like so:
+It is easiest to use PeakMatcher in a Python [virtual environment](https://docs.python.org/3/library/venv.html).  You can create a virtual environment like so:
 
 ```bash
 $ python -m venv environment_directory
@@ -24,7 +24,7 @@ To activate the virtual environment:
 $ source environment_directory/bin/activate
 ```
 
-With [developer mode](https://setuptools.readthedocs.io/en/latest/setuptools.html#development-mode), you can then make the peekmatcher package available in your environment directly from the local git repository so that any changes are reflected in real time:
+With [developer mode](https://setuptools.readthedocs.io/en/latest/setuptools.html#development-mode), you can then make the peakmatcher package available in your environment directly from the local git repository so that any changes are reflected in real time:
 
 ```bash
 $ python setup.py develop

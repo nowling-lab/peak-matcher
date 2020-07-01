@@ -16,13 +16,13 @@ limitations under the License.
 
 from setuptools import setup
 
-setup(name="peekmatcher",
+setup(name="peakmatcher",
       version=0.1,
       description="Match DNA enrichment assays peaks across genome assemblies",
       author="Ronald J. Nowling",
       author_email="rnowling@gmail.com",
       license="Apache License, Version 2.0",
-      packages=["peekmatcher"],
+      packages=["peakmatcher"],
       zip_safe=False,
       scripts=["bin/match_peaks_to_reads", "bin/match_reads_to_peaks"])
 
