@@ -1,0 +1,121 @@
+#!/usr/bin/env python3
+
+"""
+Copyright 2020 Ronald J. Nowling
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+"""
+
+import argparse
+from collections import defaultdict
+import sys
+
+def read_peak_reads(read_names_fl):
+    peak_reads = defaultdict(set)
+    with open(read_names_fl) as fl:
+        for ln in fl:
+            cols = ln.split()
+            peak_reads[cols[0]].add(cols[1])
+
+    return peak_reads
+
+def read_peaks(flname):
+    peaks = defaultdict(list)
+    with open(flname) as fl:
+        for ln in fl:
+            cols = ln.split()
+            chrom = cols[0]
+            start = int(cols[1])
+            end = int(cols[2])
+            peaks[chrom].append((start, end))
+    return peaks
+
+def count_peaks(peak_positions):
+    count = 0
+    for chrom, positions in peak_positions.items():
+        count += len(positions)
+
+    return count
+
+def parse_args():
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument("--peak-reads-fl",
+                        type=str,
+                        required=True)
+
+    parser.add_argument("--peaks-fl",
+                        type=str,
+                        required=True)
+
+    parser.add_argument("--show-details",
+                        action="store_true")
+
+    return parser.parse_args()
+
+if __name__ == "__main__":
+    args = parse_args()
+
+    peak_reads = read_peak_reads(args.peak_reads_fl)
+
+    print("Reads for", len(peak_reads), "peaks read")
+
+    peaks = read_peaks(args.peaks_fl)
+    print("Read target peaks")
+
+    print("Filtering input reads")
+    found_reads = defaultdict(lambda: defaultdict(set))
+    for ln in sys.stdin:
+        cols = ln.split()
+        read_name = cols[0]
+        read_contig = cols[2]
+        read_pos = int(cols[3])
+        read_length = 50
+        read_center = read_pos + read_length
+        for peak_name, read_names in peak_reads.items():
+            if read_name in read_names:
+                found_reads[peak_name][read_name].add((read_contig, read_center))
+    print("Done filtering input reads")
+
+    matched_target_peaks = set()
+    matched_source_peaks = set()
+    for peak_name, query_reads in peak_reads.items():
+        matched_reads = found_reads[peak_name]
+        percent = len(matched_reads) / len(query_reads) * 100.
+
+        matched_peaks = set()
+        for read_name, (contig, read_center) in matched_reads.items():
+            if contig in peaks:
+                for start, end in peaks[contig]:
+                    if start <= read_center <= end:
+                        matched_peaks.add((contig, start, end))
+                        matched_source_peaks.add(peak_name)
+
+        matched_target_peaks.update(matched_peaks)
+
+        if args.show_details:
+            print(len(matched_reads), "of", len(query_reads), "(", percent, "%) mapped for peak", peak_name)
+            print("Reads overlapped with", len(matched_peaks), "peaks:", matched_peaks)
+
+
+    total_peaks = set()
+    for chrom, (start, end) in peaks.items():
+        total_peaks.add((chrom, start, end))
+
+    intersection = matched_target_peaks.intersection(total_peaks)
+    recall = 100. * len(intersection) / len(total_peaks)
+    print("Recall:", recall)
+
+    intersection = matched_source_peaks.intersection(peak_reads.keys())
+    precision = 100. * len(intersection) / len(peak_reads)
+    print("Precision:", precision)
