@@ -17,28 +17,30 @@ limitations under the License.
 """
 
 import argparse
+from collections import defaultdict
+import intervaltree
 import os
-import subprocess
+import sys
 
 def read_peaks(flname):
-    peaks = []
+    peaks = defaultdict(lambda: intervaltree.IntervalTree())
     with open(flname) as fl:
         for ln in fl:
             cols = ln.split()
             chrom = cols[0]
             start = int(cols[1])
             end = int(cols[2])
-
-            peaks.append((chrom, start, end))
+            peak_name = chrom  + ":" + str(start) + "-" + str(end)
+            
+            # intervals are half-open so add 1 to ensure entire
+            # peak region is covered (nucleotide positions are
+            # discrete)
+            peaks[chrom][start:end+1] = peak_name
 
     return peaks
 
 def parse_args():
     parser = argparse.ArgumentParser()
-
-    parser.add_argument("--bam-fl",
-                        type=str,
-                        required=True)
 
     parser.add_argument("--peaks-fl",
                         type=str,
@@ -58,21 +60,22 @@ if __name__ == "__main__":
 
     print("Querying bam file")
     with open(args.reads_fl, "w") as outfl:
-        for chrom, start, end in peaks:
-            region = str(chrom) + ":" + str(start) + "-" + str(end)
-            cmd = "samtools view %s %s | cut -f 1 | sort | uniq" % (args.bam_fl, region)
-            print(cmd)
-            result = subprocess.Popen(cmd,
-                                      shell=True,
-                                      stdout=subprocess.PIPE,
-                                      universal_newlines=True)
-            outs, errs = result.communicate()
-            read_names = set(outs.split())
-            print("Found", len(read_names), "reads")
-            for name in read_names:
-                outfl.write(region)
-                outfl.write("\t")
-                outfl.write(name)
-                outfl.write("\n")
+        for ln in sys.stdin:
+            cols = ln.split()
+            read_name = cols[0]
+            read_contig = cols[2]
+            read_start = int(cols[3])
+            read_length = len(cols[9])
+            read_end = read_start + read_length
+
+            if read_contig in peaks:
+                matches = peaks[read_contig].overlap(read_start, read_end)
+
+                for interval in matches:
+                    peak_name = interval.data
+                    outfl.write(peak_name)
+                    outfl.write("\t")
+                    outfl.write(read_name)
+                    outfl.write("\n")
 
     
