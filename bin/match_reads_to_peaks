@@ -118,10 +118,10 @@ if __name__ == "__main__":
 
     print("Done filtering input reads")
 
-    intersection = matched_target_peaks.intersection(total_target_peaks)
-    recall = 100. * len(intersection) / len(total_target_peaks)
+    intersection = matched_source_peaks.intersection(total_source_peaks)
+    recall = 100. * len(intersection) / len(total_source_peaks)
     print("Recall:", recall)
 
-    intersection = matched_source_peaks.intersection(total_source_peaks)
-    precision = 100. * len(intersection) / len(total_source_peaks)
+    intersection = matched_target_peaks.intersection(total_target_peaks)
+    precision = 100. * len(intersection) / len(total_target_peaks)
     print("Precision:", precision)
