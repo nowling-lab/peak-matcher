@@ -23,5 +23,6 @@ setup(name="peakmatcher",
       author_email="rnowling@gmail.com",
       license="Apache License, Version 2.0",
       zip_safe=False,
+      install_requires = ["intervaltree"],
       scripts=["bin/match_peaks_to_reads", "bin/match_reads_to_peaks"])
 
