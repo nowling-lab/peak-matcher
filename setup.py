@@ -22,7 +22,6 @@ setup(name="peakmatcher",
       author="Ronald J. Nowling",
       author_email="rnowling@gmail.com",
       license="Apache License, Version 2.0",
-      packages=["peakmatcher"],
       zip_safe=False,
       scripts=["bin/match_peaks_to_reads", "bin/match_reads_to_peaks"])
 
