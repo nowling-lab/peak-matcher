@@ -18,6 +18,7 @@ limitations under the License.
 
 import argparse
 from collections import defaultdict
+import intervaltree
 import sys
 
 def read_peak_reads(read_names_fl):
@@ -25,27 +26,27 @@ def read_peak_reads(read_names_fl):
     with open(read_names_fl) as fl:
         for ln in fl:
             cols = ln.split()
-            peak_reads[cols[0]].add(cols[1])
+            peak_name = cols[0]
+            read_name = cols[1]
+            peak_reads[read_name].add(peak_name)
 
     return peak_reads
 
 def read_peaks(flname):
-    peaks = defaultdict(list)
+    peaks = defaultdict(lambda: intervaltree.IntervalTree())
     with open(flname) as fl:
         for ln in fl:
             cols = ln.split()
             chrom = cols[0]
             start = int(cols[1])
             end = int(cols[2])
-            peaks[chrom].append((start, end))
+            peak_name = chrom + ":" + str(start) + "-" + str(end)
+
+            # intervals are half-open so add 1 to ensure entire
+            # peak region is covered (nucleotide positions are
+            # discrete)
+            peaks[chrom][start:end+1] = peak_name
     return peaks
-
-def count_peaks(peak_positions):
-    count = 0
-    for chrom, positions in peak_positions.items():
-        count += len(positions)
-
-    return count
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -67,55 +68,60 @@ if __name__ == "__main__":
     args = parse_args()
 
     peak_reads = read_peak_reads(args.peak_reads_fl)
+    print(len(peak_reads), "read names loaded")
 
-    print("Reads for", len(peak_reads), "peaks read")
-
-    peaks = read_peaks(args.peaks_fl)
+    target_peaks = read_peaks(args.peaks_fl)
     print("Read target peaks")
 
-    print("Filtering input reads")
-    found_reads = defaultdict(lambda: defaultdict(set))
+    total_target_peaks = set()
+    for chrom, tree in target_peaks.items():
+        for interval in tree:
+            total_target_peaks.add(interval.data)
+    print("Target peaks:", len(total_target_peaks))
+
+    total_source_peaks = set()
+    for read_name, peak_names in peak_reads.items():
+        total_source_peaks.update(peak_names)
+    print("Source peaks:", len(total_source_peaks))
+    
+    matched_target_peaks = set()
+    matched_source_peaks = set()
+    peak_matches = defaultdict(set)
+    read_count = 0
+    next_output = 1
     for ln in sys.stdin:
         cols = ln.split()
         read_name = cols[0]
         read_contig = cols[2]
-        read_pos = int(cols[3])
-        read_length = 50
-        read_center = read_pos + read_length
-        for peak_name, read_names in peak_reads.items():
-            if read_name in read_names:
-                found_reads[peak_name][read_name].add((read_contig, read_center))
+        read_start = int(cols[3])
+        read_length = len(cols[9])
+        read_end = read_start + read_length
+
+        read_count += 1
+        if next_output == read_count:
+            print("Read", read_count, "reads")
+            next_output *= 2
+
+        if read_contig in target_peaks and read_name in peak_reads:
+            src_peak_names = peak_reads[read_name]
+            target_matches = target_peaks[read_contig].overlap(read_start, read_end)
+
+            if len(target_matches) > 0:
+                matched_source_peaks.update(src_peak_names)
+            
+            for interval in target_matches:
+                target_peak_name = interval.data
+                matched_target_peaks.add(target_peak_name)
+                #for src in src_peak_names:
+                #    for target in target_peak_names:
+                #        peak_matches[src].add(target)
+
     print("Done filtering input reads")
 
-    matched_target_peaks = set()
-    matched_source_peaks = set()
-    for peak_name, query_reads in peak_reads.items():
-        matched_reads = found_reads[peak_name]
-        percent = len(matched_reads) / len(query_reads) * 100.
-
-        matched_peaks = set()
-        for read_name, (contig, read_center) in matched_reads.items():
-            if contig in peaks:
-                for start, end in peaks[contig]:
-                    if start <= read_center <= end:
-                        matched_peaks.add((contig, start, end))
-                        matched_source_peaks.add(peak_name)
-
-        matched_target_peaks.update(matched_peaks)
-
-        if args.show_details:
-            print(len(matched_reads), "of", len(query_reads), "(", percent, "%) mapped for peak", peak_name)
-            print("Reads overlapped with", len(matched_peaks), "peaks:", matched_peaks)
-
-
-    total_peaks = set()
-    for chrom, (start, end) in peaks.items():
-        total_peaks.add((chrom, start, end))
-
-    intersection = matched_target_peaks.intersection(total_peaks)
-    recall = 100. * len(intersection) / len(total_peaks)
+    intersection = matched_target_peaks.intersection(total_target_peaks)
+    recall = 100. * len(intersection) / len(total_target_peaks)
     print("Recall:", recall)
 
-    intersection = matched_source_peaks.intersection(peak_reads.keys())
-    precision = 100. * len(intersection) / len(peak_reads)
+    intersection = matched_source_peaks.intersection(total_source_peaks)
+    precision = 100. * len(intersection) / len(total_source_peaks)
     print("Precision:", precision)

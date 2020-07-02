@@ -56,9 +56,16 @@ if __name__ == "__main__":
     args = parse_args()
 
     peaks = read_peaks(args.peaks_fl)
-    print("Read", len(peaks), "peaks")
+
+    total_peaks = 0
+    for chrom, tree in peaks.items():
+        total_peaks += len(tree)
+    
+    print("Read", total_peaks, "peaks")
 
     print("Querying bam file")
+    read_count = 0
+    next_output = 1
     with open(args.reads_fl, "w") as outfl:
         for ln in sys.stdin:
             cols = ln.split()
@@ -67,6 +74,11 @@ if __name__ == "__main__":
             read_start = int(cols[3])
             read_length = len(cols[9])
             read_end = read_start + read_length
+
+            read_count += 1
+            if next_output == read_count:
+                print("Read", read_count, "reads")
+                next_output *= 2
 
             if read_contig in peaks:
                 matches = peaks[read_contig].overlap(read_start, read_end)
