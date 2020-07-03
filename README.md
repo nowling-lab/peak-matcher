@@ -43,7 +43,7 @@ $ deactivate
 
 
 ```
-$ samtools view ../peak-calling-L3-aln-mapq10/05_alignments/SRR2530418.filtered.bam | match_peaks_to_reads --peaks-fl ../Aedes_exp2_peaks.txt --reads-fl Aedes_exp2_peaks.reads
-$ samtools view ../peak-calling-L5-aln-mapq10/data/filtered_reads/SRR2530418.filtered.bam | match_reads_to_peaks --peak-reads-fl Aedes_exp2_peaks.reads --peaks-fl ../peak-calling-L5-aln-mapq10/06_called_peaks_molly_L3genome_size/AaegL3_faire_seq_peaks.narrowPeak
+$ samtools view genome1.filtered.bam | match_peaks_to_reads --peaks-fl genome1_peaks.narrowPeak --reads-fl genome1_peaks.reads
+$ samtools view genome2.filtered.bam | match_reads_to_peaks --peak-reads-fl genome1_peaks.reads --peaks-fl genome2_peaks.narrowPeak
 ```
 
