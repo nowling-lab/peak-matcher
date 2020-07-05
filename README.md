@@ -36,7 +36,9 @@ To deactivate the virtual environment, run:
 $ deactivate
 ```
 
-## Usage
+## Use Case 1: Comparing Peaks Across Genomes
+
+When calling peaks for an updated genome, we need a way to validate the peaks between the two genome versions.  PeakMatcher includes a pair of scripts that uses the peak reads aligned to both genomes to match up peaks and calculate precision and recall.
 
 1. Use `match_peaks_to_reads` to find reads that overlap the peaks in the L3 alignment
 2. Use `match_reads_to_peaks` to check if reads are aligned to L5 and if they overlap with peaks called for L5
@@ -45,5 +47,12 @@ $ deactivate
 ```
 $ samtools view genome1.filtered.bam | match_peaks_to_reads --peaks-fl genome1_peaks.narrowPeak --reads-fl genome1_peaks.reads
 $ samtools view genome2.filtered.bam | match_reads_to_peaks --peak-reads-fl genome1_peaks.reads --peaks-fl genome2_peaks.narrowPeak
+```
+## Use Case 2: Comparing Peaks within the Same Genome
+
+There are times when you want to compare peaks called for the same genome.  Examples include comparing two different experimental techniques or conditions and validating an implementation of a pipeline against published lists.  PeakMatcher contains a third script for this use case:
+
+```
+$ compare_peaks_within_genomes --source-peaks-fl source_peaks.narrowPeak --target-peaks-fl target_peaks.narrowPeak
 ```
 
