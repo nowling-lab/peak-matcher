@@ -72,6 +72,7 @@ if __name__ == "__main__":
 
     target_peaks = read_peaks(args.peaks_fl)
     print("Read target peaks")
+    print(target_peaks.keys())
 
     total_target_peaks = set()
     for chrom, tree in target_peaks.items():
@@ -117,11 +118,13 @@ if __name__ == "__main__":
                 #        peak_matches[src].add(target)
 
     print("Done filtering input reads")
+    print("Matched source peaks:", len(matched_source_peaks))
+    print("Matched target_peaks:", len(matched_target_peaks))
 
     intersection = matched_source_peaks.intersection(total_source_peaks)
-    recall = 100. * len(intersection) / len(total_source_peaks)
-    print("Recall:", recall)
+    precision = 100. * len(intersection) / len(total_source_peaks)
+    print("Precision (Source peaks):", precision)
 
     intersection = matched_target_peaks.intersection(total_target_peaks)
-    precision = 100. * len(intersection) / len(total_target_peaks)
-    print("Precision:", precision)
+    recall = 100. * len(intersection) / len(total_target_peaks)
+    print("Recall (Target peaks):", recall)
