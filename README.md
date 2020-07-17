@@ -56,3 +56,10 @@ There are times when you want to compare peaks called for the same genome.  Exam
 $ compare_peaks_within_genomes --source-peaks-fl source_peaks.narrowPeak --target-peaks-fl target_peaks.narrowPeak
 ```
 
+## Use Case 3: Selecting Peaks in a Region
+
+If you want to look at peaks within a particular region on a particular chromosome, you can use the following:
+
+```
+$ peaks_in_region --input-peaks-fl something.narrowPeak --chrom 2L --window 50000 100000 --output-peaks-fl subset.narrowPeak
+```
