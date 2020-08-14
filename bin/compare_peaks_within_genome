@@ -64,6 +64,34 @@ def find_matches(all_source_peaks, all_target_peaks):
 
     return matched_source_peaks, matched_target_peaks
 
+def calculate_overlap(all_source_peaks, all_target_peaks):
+    n_union_windows = 0
+    n_intersection_windows = 0
+
+    all_chroms = set(all_source_peaks.keys())
+    all_chroms.update(all_target_peaks.keys())
+
+    for chrom in all_chroms:
+        if chrom in all_target_peaks and chrom in all_source_peaks:
+            union = all_target_peaks[chrom].union(all_source_peaks[chrom])
+            union.merge_overlaps()
+
+            left = all_target_peaks[chrom].copy()
+            right = all_source_peaks[chrom]
+
+            for interval in left:
+                matches = right.overlap(interval.begin, interval.end)
+                if len(matches) > 0:
+                    n_intersection_windows += 1
+
+            n_union_windows += len(union)
+        elif chrom in all_target_peaks:
+            n_union_windows += len(all_target_peaks[chrom])
+        elif chrom in all_source_peaks:
+            n_union_windows += len(all_source_peaks[chrom])
+
+    return n_union_windows, n_intersection_windows, n_intersection_windows / n_union_windows
+
 def parse_args():
     parser = argparse.ArgumentParser()
 
@@ -102,4 +130,8 @@ if __name__ == "__main__":
     print("Precision (source peaks):", precision)
     print("Recall (target peaks):", recall)
 
-    
+    n_union, n_intersection, overlap = calculate_overlap(source_peaks, target_peaks)
+
+    print(n_union, "merged peaks")
+    print(n_intersection, "intersecting peaks")
+    print("Overlap:", 100. * overlap)
