@@ -40,7 +40,7 @@ def read_peaks(flname):
             chrom = cols[0]
             start = int(cols[1])
             end = int(cols[2])
-            peak_name = chrom + ":" + str(start) + "-" + str(end)
+            peak_name = ln
 
             # intervals are half-open so add 1 to ensure entire
             # peak region is covered (nucleotide positions are
@@ -62,6 +62,12 @@ def parse_args():
     parser.add_argument("--show-details",
                         action="store_true")
 
+    parser.add_argument("--matched-peaks-fl",
+                        type=str)
+
+    parser.add_argument("--unmatched-peaks-fl",
+                        type=str)
+
     return parser.parse_args()
 
 if __name__ == "__main__":
@@ -72,7 +78,6 @@ if __name__ == "__main__":
 
     target_peaks = read_peaks(args.peaks_fl)
     print("Read target peaks")
-    print(target_peaks.keys())
 
     total_target_peaks = set()
     for chrom, tree in target_peaks.items():
@@ -113,9 +118,6 @@ if __name__ == "__main__":
             for interval in target_matches:
                 target_peak_name = interval.data
                 matched_target_peaks.add(target_peak_name)
-                #for src in src_peak_names:
-                #    for target in target_peak_names:
-                #        peak_matches[src].add(target)
 
     print("Done filtering input reads")
     print("Matched source peaks:", len(matched_source_peaks))
@@ -128,3 +130,15 @@ if __name__ == "__main__":
     intersection = matched_target_peaks.intersection(total_target_peaks)
     recall = 100. * len(intersection) / len(total_target_peaks)
     print("Recall (Target peaks):", recall)
+
+    if args.matched_peaks_fl:
+        with open(args.matched_peaks_fl, "w") as fl:
+            for peak_ln in matched_target_peaks:
+                fl.write(peak_ln)
+
+    if args.unmatched_peaks_fl:
+        unmatched_target_peaks = total_target_peaks - matched_target_peaks
+        print("Unmatched target peaks:", len(unmatched_target_peaks))
+        with open(args.unmatched_peaks_fl, "w") as fl:
+            for peak_ln in unmatched_target_peaks:
+                fl.write(peak_ln)

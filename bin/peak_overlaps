@@ -1,0 +1,108 @@
+#!/usr/bin/env python3
+
+"""
+Copyright 2020 Ronald J. Nowling
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+"""
+
+import argparse
+from collections import defaultdict
+import intervaltree
+import numpy as np
+
+def read_peaks(flname):
+    peaks = defaultdict(lambda: intervaltree.IntervalTree())
+    peak_sets = defaultdict(lambda: intervaltree.IntervalTree())
+    with open(flname) as fl:
+        for ln in fl:
+            cols = ln.split()
+            chrom = cols[0]
+            start = int(cols[1])
+            end = int(cols[2])
+            peak_label = (chrom, start, end)
+            
+            # intervals are half-open so add 1 to ensure entire
+            # peak region is covered (nucleotide positions are
+            # discrete)
+            peaks[chrom][start:end+1] = peak_label
+
+            peak_sets[peak_label] = set(range(start, end + 1))
+
+    return peaks, peak_sets
+
+def calculate_ious(target_peak_ranges, overlap_sets):
+    keys = set(target_peak_ranges.keys())
+    keys.update(overlap_sets.keys())
+
+    ious = []
+    for key in keys:
+        if key not in overlap_sets:
+            ious.append(0.0)
+        else:
+            bp_range = target_peak_ranges[key]
+            overlap_range = overlap_sets[key]
+
+            iou = len(bp_range.intersection(overlap_range)) / \
+                float(len(bp_range.union(overlap_range)))
+
+            ious.append(iou)
+
+    return ious
+
+def find_target_overlaps(all_source_peaks, all_target_peaks, bitset):
+    matched_sets = defaultdict(set)
+    for chrom, source_peaks in all_source_peaks.items():
+        if chrom in all_target_peaks:
+            for source_interval in source_peaks:
+                target_matches = all_target_peaks[chrom].overlap(source_interval.begin,
+                                                                 source_interval.end)
+                if len(target_matches) > 0:
+                    for target_interval in target_matches:
+                        target_peak_label = target_interval.data
+                        overlap = bitset[target_peak_label].intersection(range(target_interval.begin, target_interval.end + 1))
+                        matched_sets[target_peak_label].update(overlap)
+
+    return matched_sets
+
+def parse_args():
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument("--source-peaks-fl",
+                        type=str,
+                        required=True)
+
+    parser.add_argument("--target-peaks-fl",
+                        type=str,
+                        required=True)
+
+    return parser.parse_args()
+
+if __name__ == "__main__":
+    args = parse_args()
+
+    source_peaks, _ = read_peaks(args.source_peaks_fl)
+    target_peaks, target_peak_ranges = read_peaks(args.target_peaks_fl)
+
+    target_peak_overlaps = find_target_overlaps(source_peaks,
+                                                target_peaks,
+                                                target_peak_ranges)
+
+    ious = calculate_ious(target_peak_ranges,
+                          target_peak_overlaps)
+
+    avg = 100. * np.mean(ious)
+    std = 100. * np.std(ious)
+
+    print("Average:", avg)
+    print("Std:", std)

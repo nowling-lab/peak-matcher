@@ -23,6 +23,6 @@ setup(name="peakmatcher",
       author_email="rnowling@gmail.com",
       license="Apache License, Version 2.0",
       zip_safe=False,
-      install_requires = ["intervaltree"],
-      scripts=["bin/match_peaks_to_reads", "bin/match_reads_to_peaks", "bin/compare_peaks_within_genome", "bin/peaks_in_region"])
+      install_requires = ["intervaltree", "numpy", "pandas"],
+      scripts=["bin/match_peaks_to_reads", "bin/match_reads_to_peaks", "bin/compare_peaks_within_genome", "bin/peaks_in_region", "bin/merge_peaks", "bin/peak_overlaps", "bin/peak_center_dist", "bin/select_macs_windows", "bin/precision_recall_curve"])
 

@@ -1,0 +1,97 @@
+#!/usr/bin/env python3
+
+"""
+Copyright 2020 Ronald J. Nowling
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+"""
+
+import argparse
+from collections import defaultdict
+import intervaltree
+import numpy as np
+
+def read_peaks(flname):
+    peaks = defaultdict(lambda: intervaltree.IntervalTree())
+    with open(flname) as fl:
+        for ln in fl:
+            cols = ln.split()
+            chrom = cols[0]
+            start = int(cols[1])
+            end = int(cols[2])
+            peak_label = (chrom, start, end)
+
+            if len(cols) == 10:
+                center = start + int(cols[-1])
+            else:
+                center = (start + end) // 2
+            
+            # intervals are half-open so add 1 to ensure entire
+            # peak region is covered (nucleotide positions are
+            # discrete)
+            peaks[chrom][start:end+1] = center
+
+    return peaks
+
+def find_center_distances(all_source_peaks, all_target_peaks):
+    distances = []
+    for chrom, source_peaks in all_source_peaks.items():
+        if chrom in all_target_peaks:
+            for source_interval in source_peaks:
+                target_matches = all_target_peaks[chrom].overlap(source_interval.begin,
+                                                                 source_interval.end)
+                matched_distances = []
+                for target_interval in target_matches:
+                    distance = abs(source_interval.data - target_interval.data)
+                    matched_distances.append(distance)
+
+                if len(matched_distances) > 0:
+                    distances.append(min(matched_distances))
+
+    return distances
+
+def parse_args():
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument("--source-peaks-fl",
+                        type=str,
+                        required=True)
+
+    parser.add_argument("--target-peaks-fl",
+                        type=str,
+                        required=True)
+
+    parser.add_argument("--distances-fl",
+                        type=str)
+
+    return parser.parse_args()
+
+if __name__ == "__main__":
+    args = parse_args()
+
+    source_peaks = read_peaks(args.source_peaks_fl)
+    target_peaks = read_peaks(args.target_peaks_fl)
+
+    distances = find_center_distances(source_peaks, target_peaks)
+
+    avg = np.mean(distances)
+    std = np.std(distances)
+
+    print("Average:", avg)
+    print("Std:", std)
+
+    if args.distances_fl:
+        with open(args.distances_fl, "w") as fl:
+            for d in distances:
+                fl.write(str(d))
+                fl.write("\n")

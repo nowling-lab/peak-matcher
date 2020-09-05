@@ -1,0 +1,168 @@
+#!/usr/bin/env python3
+
+"""
+Copyright 2020 Ronald J. Nowling
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+"""
+
+import argparse
+from collections import defaultdict
+import intervaltree
+
+import numpy as np
+import pandas as pd
+
+def read_target_peaks(flname):
+    peaks = defaultdict(lambda: intervaltree.IntervalTree())
+    with open(flname) as fl:
+        for ln in fl:
+            cols = ln.split()
+            chrom = cols[0]
+            start = int(cols[1])
+            end = int(cols[2])
+            peak_name = chrom  + ":" + str(start) + "-" + str(end)
+            
+            # intervals are half-open so add 1 to ensure entire
+            # peak region is covered (nucleotide positions are
+            # discrete)
+            peaks[chrom][start:end+1] = peak_name
+
+    return peaks
+
+def read_source_peaks(flname, window_size, fl_format):
+    """
+    Loads either macs (narrow bed) or starr format.
+    """
+    if fl_format == "macs":
+        sep = "\t"
+        header = None
+        names = ["chrom", "start", "end", "name", "saturation",
+                 "strand", "lfc", "p_value", "q_value",
+                 "relative_summit"]
+        calculate_center = True
+        log_scale = True
+    elif fl_format == "starr":
+        sep = "\t"
+        header = None
+        names = ["chrom", "pos", "lfc", "p_value"]
+        calculate_center = False
+        log_scale = False
+    else:
+        raise Exception("Unknown peak file format %s" % fl_format)
+
+    df = pd.read_csv(flname,
+                     sep = sep,
+                     header = header,
+                     names = names)
+
+    if calculate_center:
+        center_positions = df["start"] + df["relative_summit"]
+        df["pos"] = center_positions
+
+    df["start"] = df["pos"] - window_size // 2
+    df["end"] = df["pos"] + window_size // 2
+
+    if log_scale:
+        df["p_value"] = -df["p_value"]
+
+    df = df.sort_values(by="p_value", ascending=True)
+
+    print(len(df))
+
+    return df
+
+def precision_recall_curve(all_source_peaks, all_target_peaks):
+    thresholds = list(set(all_source_peaks["p_value"]))
+    thresholds.sort()
+    print(len(thresholds))
+
+    total_targets = 0
+    for chrom, targets in all_target_peaks.items():
+        total_targets += len(targets)
+
+    total_targets = float(total_targets)
+
+    precisions = []
+    recalls = []
+    prev_threshold = min(all_source_peaks["p_value"])
+    print(prev_threshold)
+    found_targets = set()
+    matched_sources = 0
+    sources_so_far = 0
+    for idx, row in all_source_peaks.iterrows():
+        if row.p_value > prev_threshold:
+            prec = float(matched_sources) / sources_so_far
+            rec = len(found_targets) / total_targets
+
+            precisions.append(prec)
+            recalls.append(rec)
+            prev_threshold = row.p_value
+
+        sources_so_far += 1
+        if row.chrom in all_target_peaks:
+            target_matches = all_target_peaks[row.chrom].overlap(row.start,
+                                                                     row.end)
+            if len(target_matches) > 0:
+                matched_sources += 1
+                for interval in target_matches:
+                    found_targets.add(interval.data)
+    
+    prec = float(matched_sources) / sources_so_far
+    rec = len(found_targets) / total_targets
+
+    precisions.append(prec)
+    recalls.append(rec)
+
+    return np.array(precisions), np.array(recalls)
+
+def parse_args():
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument("--source-peaks-fl",
+                        type=str,
+                        required=True)
+
+    parser.add_argument("--target-peaks-fl",
+                        type=str,
+                        required=True)
+
+    parser.add_argument("--window-size",
+                        type=int,
+                        required=True)
+
+    parser.add_argument("--source-format",
+                        type=str,
+                        required="True",
+                        choices = ["macs", "starr"])
+
+    parser.add_argument("--scores-fl",
+                        type=str,
+                        required=True)
+
+    return parser.parse_args()
+
+if __name__ == "__main__":
+    args = parse_args()
+
+    source_peaks = read_source_peaks(args.source_peaks_fl, args.window_size, args.source_format)
+    target_peaks = read_target_peaks(args.target_peaks_fl)
+
+    print(source_peaks.head())
+    
+    precision, recall = precision_recall_curve(source_peaks, target_peaks)
+
+    df = pd.DataFrame({"precision": precision,
+                       "recall" : recall})
+
+    df.to_csv(args.scores_fl, sep="\t", index=False)
