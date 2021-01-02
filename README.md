@@ -52,5 +52,7 @@ When calling peaks for an updated genome, we need a way to validate the peaks be
 
 ```
 $ samtools view genome1.filtered.bam | match_peaks_to_reads --peaks-fl genome1_peaks.narrowPeak --reads-fl genome1_peaks.reads
-$ samtools view genome2.filtered.bam | match_reads_to_peaks --peak-reads-fl genome1_peaks.reads --peaks-fl genome2_peaks.narrowPeak
+$ samtools view genome2.filtered.bam | match_reads_to_peaks --peak-reads-fl genome1_peaks.reads --peaks-fl genome2_peaks.narrowPeak --matched-peaks-fl matched_peaks.tsv --unmatched-peaks-fl unmatched_peaks.tsv
 ```
+
+The output is stored in two files.  The list of matched peaks are stored in `matched_peaks.tsv`, while the list of peaks from genome 2 that were not able to be matched are stored in `unmatched_peaks.tsv`.
