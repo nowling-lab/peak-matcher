@@ -1,5 +1,11 @@
 # PeakMatcher
-A tool for matching peaks across genome assemblies using read alignments.
+Many early draft genome assemblies are incomplete or fragmented (not assembled to chromosome scale).  Researchers often resequence genomes and generate new updated assemblies.  For example, my search for ["improved genome assembly"](https://scholar.google.com/scholar?hl=en&as_sdt=0%2C50&q=improved+genome+assembly&btnG=&oq=improved+genome+) on Google Scholar returns several pages of papers documenting new genome assemblies of everything from insects, fish, plants, reptiles, and birds.
+
+Processing of data from DNA enrichment assays such as ChIP-Seq and ATAC-Seq is intimitedly tied to the genome assembly.  Sequencing data are aligned to the genome; overlapping reads form "peaks" that indicate areas of activity within the genome.  When assemblies are updated, these data need to be reprocessed and re-analyzed.  It is not, however, feasible or even reasonable to completely redo all validation work such as wet-lab experiments.
+
+PeakMatcher is a tool for matching up peaks called for the same DNA enrichment assay data across two genome assemblies.  PeakMatcher takes peak lists and read alignments for both genome assemblies as input and outputs a text file containing peak-peak pairs.
+
+PeakMatcher exploits the association of peaks with their underlying sequencing data.  A given peak is formed by a set of overlapping reads.  It is highly likely that these same reads would align together on both genomes.  PeakMatcher finds the reads overlapping each peak in both genomes and uses the common reads to perform an inner-join of the peaks.
 
 ## Dependencies
 PeakMatcher is developed with Python 3 and depends on the [intervaltree](https://github.com/chaimleib/intervaltree) library.
@@ -36,7 +42,7 @@ To deactivate the virtual environment, run:
 $ deactivate
 ```
 
-## Use Case 1: Comparing Peaks Across Genomes
+## Usage: Comparing Peaks Across Genomes
 
 When calling peaks for an updated genome, we need a way to validate the peaks between the two genome versions.  PeakMatcher includes a pair of scripts that uses the peak reads aligned to both genomes to match up peaks and calculate precision and recall.
 
@@ -47,19 +53,4 @@ When calling peaks for an updated genome, we need a way to validate the peaks be
 ```
 $ samtools view genome1.filtered.bam | match_peaks_to_reads --peaks-fl genome1_peaks.narrowPeak --reads-fl genome1_peaks.reads
 $ samtools view genome2.filtered.bam | match_reads_to_peaks --peak-reads-fl genome1_peaks.reads --peaks-fl genome2_peaks.narrowPeak
-```
-## Use Case 2: Comparing Peaks within the Same Genome
-
-There are times when you want to compare peaks called for the same genome.  Examples include comparing two different experimental techniques or conditions and validating an implementation of a pipeline against published lists.  PeakMatcher contains a third script for this use case:
-
-```
-$ compare_peaks_within_genomes --source-peaks-fl source_peaks.narrowPeak --target-peaks-fl target_peaks.narrowPeak
-```
-
-## Use Case 3: Selecting Peaks in a Region
-
-If you want to look at peaks within a particular region on a particular chromosome, you can use the following:
-
-```
-$ peaks_in_region --input-peaks-fl something.narrowPeak --chrom 2L --window 50000 100000 --output-peaks-fl subset.narrowPeak
 ```
