@@ -1,4 +1,7 @@
 # PeakMatcher
+
+[![DOI](https://zenodo.org/badge/276385205.svg)](https://zenodo.org/badge/latestdoi/276385205)
+
 Many early draft genome assemblies are incomplete or fragmented (not assembled to chromosome scale).  Researchers often resequence genomes and generate new updated assemblies.  For example, my search for ["improved genome assembly"](https://scholar.google.com/scholar?hl=en&as_sdt=0%2C50&q=improved+genome+assembly&btnG=&oq=improved+genome+) on Google Scholar returns several pages of papers documenting new genome assemblies of everything from insects, fish, plants, reptiles, and birds.
 
 Processing of data from DNA enrichment assays such as ChIP-Seq and ATAC-Seq is intimitedly tied to the genome assembly.  Sequencing data are aligned to the genome; overlapping reads form "peaks" that indicate areas of activity within the genome.  When assemblies are updated, these data need to be reprocessed and re-analyzed.  It is not, however, feasible or even reasonable to completely redo all validation work such as wet-lab experiments.
