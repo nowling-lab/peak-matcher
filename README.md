@@ -56,3 +56,8 @@ $ samtools view genome2.filtered.bam | match_reads_to_peaks --peak-reads-fl geno
 ```
 
 The output is stored in two files.  The list of matched peaks are stored in `matched_peaks.tsv`, while the list of peaks from genome 2 that were not able to be matched are stored in `unmatched_peaks.tsv`.
+
+## Citing This Software
+If you use PeakMatcher, please cite our paper:
+
+Nowling, R.J., Behura, S.K., Halfon, M.S. et al. [PeakMatcher facilitates updated _Aedes aegypti_ embryonic _cis_-regulatory element map](https://hereditasjournal.biomedcentral.com/articles/10.1186/s41065-021-00172-2). _Hereditas_ 158, 7 (2021). https://doi.org/10.1186/s41065-021-00172-2
